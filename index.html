@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#14121f">
+  <title>Square Obliterate</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="app">
+    <header class="top">
+      <div class="stat">
+        <span class="label">Score</span>
+        <span id="score" class="value">0</span>
+      </div>
+      <div class="stat center">
+        <span class="label">Combo</span>
+        <span id="combo" class="value small">–</span>
+      </div>
+      <div class="stat right">
+        <span class="label">Best</span>
+        <span id="best" class="value">0</span>
+      </div>
+    </header>
+
+    <canvas id="game" aria-label="Game board"></canvas>
+
+    <footer class="bar">
+      <button id="btn-new" type="button">New game</button>
+      <button id="btn-daily" type="button">Daily</button>
+      <button id="btn-info" type="button">Fairness</button>
+    </footer>
+    <p id="seed-line" class="seed-line"></p>
+  </main>
+
+  <dialog id="over">
+    <h2>No moves left</h2>
+    <p class="big" id="final-score">0</p>
+    <p id="final-detail"></p>
+    <div class="row">
+      <button id="btn-retry" type="button">Replay same seed</button>
+      <button id="btn-again" type="button">New seed</button>
+    </div>
+  </dialog>
+
+  <dialog id="info">
+    <h2>How it stays fair</h2>
+    <ul>
+      <li><b>One public rule.</b> Pieces come from a fixed table of odds (below). The only adjustment is the <i>fit guarantee</i>: every new tray has at least one piece that fits your board. If a roll has none, it is rerolled.</li>
+      <li><b>Nothing else is read.</b> The generator never uses your score, streak, play time, or history. There are no ads, so there is nothing to tune against.</li>
+      <li><b>Seeded and replayable.</b> Every game has a seed. Each tray is rolled from the seed and its tray number, so players on the same seed get the same trays. They only differ when the fit guarantee rerolls.</li>
+      <li><b>Daily challenge.</b> Everyone gets the same seed each day.</li>
+      <li><b>No ads, no continues, no purchases.</b> Your score depends only on your placements.</li>
+    </ul>
+    <h3>Scoring</h3>
+    <ul>
+      <li>1 point per square placed.</li>
+      <li>Clearing lines: 10 × lines² (1 → 10, 2 → 40, 3 → 90 …), multiplied by your combo.</li>
+      <li>Combo goes up each time a placement clears. It resets if 3 placements in a row clear nothing.</li>
+      <li>Emptying the whole board: +300.</li>
+    </ul>
+    <h3>Piece odds</h3>
+    <table id="odds"></table>
+    <label class="seed-input">Play a specific seed
+      <span class="row"><input id="seed-field" type="text" inputmode="text" maxlength="24" placeholder="e.g. friday-duel"><button id="btn-seed" type="button">Play</button></span>
+    </label>
+    <div class="row"><button id="btn-close" type="button">Close</button></div>
+  </dialog>
+
+  <script src="pieces.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
