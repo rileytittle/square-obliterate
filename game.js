@@ -3,6 +3,13 @@
   const { FAMILIES, PIECES, COLORS } = window.SO_PIECES;
   const N = 8;
 
+  // ---------- scoring (modelled on community descriptions of the genre's usual formula) ----------
+  const PTS_PER_BLOCK = 10;          // per square placed
+  const PTS_PER_LINE_CLEAR = 100;    // base value of a clearing move
+  const BOARD_CLEAR_BONUS = 3000;    // emptying the whole board
+  function multiLine(n) { return n >= 4 ? 10 : [0, 1, 3, 6][n]; } // 1, 2, 3, 4+ lines at once
+  function streakMult(streak) { return 1 + 0.5 * (streak - 1); }  // 1st clear ×1, then ×1.5, ×2 …
+
   // ---------- seeded RNG ----------
   function hashStr(str) {
     let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
@@ -61,19 +68,44 @@
     return { rows, cols };
   }
 
-  // The fit guarantee: the ONLY board-aware rule.
+  function applyMove(board, piece, cx, cy) {
+    const b = board.slice();
+    for (const [x, y] of piece.cells) b[(cy + y) * N + cx + x] = 0;
+    const { rows, cols } = linesIfPlaced(board, piece, cx, cy);
+    rows.forEach(r => { for (let i = 0; i < N; i++) b[r * N + i] = -1; });
+    cols.forEach(c => { for (let i = 0; i < N; i++) b[i * N + c] = -1; });
+    return b;
+  }
+  // Can every piece in `pieces` be placed, in some order, counting line clears in between?
+  function solvable(board, pieces) {
+    if (pieces.length === 0) return true;
+    if (pieces.length === 1) return fitsAnywhere(board, pieces[0]);
+    for (let k = 0; k < pieces.length; k++) {
+      const p = pieces[k], rest = pieces.filter((_, i) => i !== k);
+      for (let y = 0; y <= N - p.h; y++)
+        for (let x = 0; x <= N - p.w; x++)
+          if (fitsAt(board, p, x, y) && solvable(applyMove(board, p, x, y), rest)) return true;
+    }
+    return false;
+  }
+
+  // The solvable-tray guarantee: the ONLY board-aware rule.
+  // Every new tray can be fully placed. Losing means earlier placements boxed you in.
   function rollTray(seed, trayNo, board) {
-    for (let attempt = 0; attempt < 10; attempt++) {
+    for (let attempt = 0; attempt < 30; attempt++) {
       const rng = trayRng(seed, trayNo, attempt);
       const tray = [0, 1, 2].map(() => makeTrayPiece(pickWeighted(PIECES, rng), rng));
-      if (tray.some(t => fitsAnywhere(board, t.piece))) return tray;
+      if (solvable(board, tray.map(t => t.piece))) return tray;
     }
-    // Very full board: swap one slot for a weighted pick among pieces that fit.
+    // Rare (crowded board): build the tray one slot at a time, each a weighted pick
+    // among pieces that keep the tray solvable. A single square always qualifies.
     const rng = trayRng(seed, trayNo, 'fallback');
-    const tray = [0, 1, 2].map(() => makeTrayPiece(pickWeighted(PIECES, rng), rng));
-    const fitting = PIECES.filter(p => fitsAnywhere(board, p));
-    if (fitting.length) tray[Math.floor(rng() * 3)] = makeTrayPiece(pickWeighted(fitting, rng), rng);
-    return tray;
+    const chosen = [];
+    for (let i = 0; i < 3; i++) {
+      const ok = PIECES.filter(p => solvable(board, chosen.concat([p])));
+      chosen.push(pickWeighted(ok, rng));
+    }
+    return chosen.map(p => makeTrayPiece(p, rng));
   }
   function makeTrayPiece(piece, rng) {
     return { piece, color: Math.floor(rng() * COLORS.length) };
@@ -115,7 +147,7 @@
     S.tray[slot] = null;
     S.placed++;
 
-    let gained = t.piece.cells.length;
+    let gained = t.piece.cells.length * PTS_PER_BLOCK;
     const lines = rows.length + cols.length;
     if (lines > 0) {
       S.combo++; S.miss = 0;
@@ -126,10 +158,11 @@
       cols.forEach(c => { for (let i = 0; i < N; i++) cleared.add(i * N + c); });
       const now = performance.now();
       cleared.forEach(idx => { fx.clears.push({ idx, color: S.board[idx], t: now }); S.board[idx] = -1; });
-      gained += 10 * lines * lines * S.combo;
-      let label = '+' + gained;
-      if (S.board.every(v => v === -1)) { gained += 300; label = 'CLEAN SWEEP +' + gained; }
-      else if (S.combo > 1) label += '  ×' + S.combo;
+      const mult = streakMult(S.combo);
+      gained += Math.round(PTS_PER_LINE_CLEAR * multiLine(lines) * mult);
+      let label = '+' + gained.toLocaleString();
+      if (S.board.every(v => v === -1)) { gained += BOARD_CLEAR_BONUS; label = 'CLEAN SWEEP +' + gained.toLocaleString(); }
+      else if (mult > 1) label += '  ×' + mult;
       fx.pops.push({ text: label, x: cx + t.piece.w / 2, y: cy + t.piece.h / 2, t: now });
       fx.shake = Math.min(12, 3 + lines * 2);
     } else {
@@ -168,7 +201,7 @@
   function updateHud() {
     $('#score').textContent = S.score.toLocaleString();
     $('#best').textContent = Math.max(S.best, S.score).toLocaleString();
-    $('#combo').textContent = S.combo > 0 ? '×' + S.combo + (S.miss ? ' ' + '•'.repeat(3 - S.miss) : '') : '–';
+    $('#combo').textContent = S.combo > 0 ? '×' + streakMult(S.combo + 1) + (S.miss ? ' ' + '•'.repeat(3 - S.miss) : '') : '–';
     let line = 'Seed: ' + S.seed;
     if (S.seed.startsWith('daily-')) line += ' · today\'s best ' + load('so-' + S.seed, 0).toLocaleString();
     $('#seed-line').textContent = line;
@@ -375,5 +408,5 @@
   requestAnimationFrame(draw);
 
   // exposed for tests
-  window.SO_TEST = { S, place, newGame, fitsAt, fitsAnywhere, rollTray };
+  window.SO_TEST = { S, place, newGame, fitsAt, fitsAnywhere, rollTray, solvable };
 })();

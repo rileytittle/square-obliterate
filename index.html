@@ -15,7 +15,7 @@
         <span id="score" class="value">0</span>
       </div>
       <div class="stat center">
-        <span class="label">Combo</span>
+        <span class="label">Next clear</span>
         <span id="combo" class="value small">–</span>
       </div>
       <div class="stat right">
@@ -47,18 +47,19 @@
   <dialog id="info">
     <h2>How it stays fair</h2>
     <ul>
-      <li><b>One public rule.</b> Pieces come from a fixed table of odds (below). The only adjustment is the <i>fit guarantee</i>: every new tray has at least one piece that fits your board. If a roll has none, it is rerolled.</li>
+      <li><b>One public rule.</b> Pieces come from a fixed table of odds (below). The only adjustment is the <i>solvable-tray guarantee</i>: every new tray can be fully placed on your board, in some order. If a roll can't, it is rerolled. If you lose, it's because earlier placements boxed you in, never because the game decided it was your turn to lose.</li>
       <li><b>Nothing else is read.</b> The generator never uses your score, streak, play time, or history. There are no ads, so there is nothing to tune against.</li>
-      <li><b>Seeded and replayable.</b> Every game has a seed. Each tray is rolled from the seed and its tray number, so players on the same seed get the same trays. They only differ when the fit guarantee rerolls.</li>
+      <li><b>Seeded and replayable.</b> Every game has a seed. Each tray is rolled from the seed and its tray number, so players on the same seed get the same trays. They only differ when the guarantee rerolls.</li>
       <li><b>Daily challenge.</b> Everyone gets the same seed each day.</li>
       <li><b>No ads, no continues, no purchases.</b> Your score depends only on your placements.</li>
     </ul>
     <h3>Scoring</h3>
     <ul>
-      <li>1 point per square placed.</li>
-      <li>Clearing lines: 10 × lines² (1 → 10, 2 → 40, 3 → 90 …), multiplied by your combo.</li>
-      <li>Combo goes up each time a placement clears. It resets if 3 placements in a row clear nothing.</li>
-      <li>Emptying the whole board: +300.</li>
+      <li>10 points per square placed.</li>
+      <li>A move that clears lines scores 100 × lines bonus × streak.</li>
+      <li>Lines bonus for clearing at once: 1 line ×1, 2 lines ×3, 3 lines ×6, 4 or more ×10.</li>
+      <li>Streak: your first clear is ×1, then each clear in a row adds ×0.5 (×1.5, ×2, ×2.5 …). The dots show how many placements you have left to clear before the streak breaks (3 placements without a clear).</li>
+      <li>Emptying the whole board: +3,000.</li>
     </ul>
     <h3>Piece odds</h3>
     <table id="odds"></table>
